@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#: * `deepclean` [<opts>]
+#:   Does `brew cleanup` <opts>, then the following actions:
+#:   1. GC all taps
+[[ -n $HOMEBREW_REPOSITORY ]] || eval $(brew shellenv)
+brew cleanup "$@"
+echo "===== GCing all taps ====="
+for d in $HOMEBREW_REPOSITORY/Library/Homebrew/*/*; do
+  [[ -d $d/.git ]] && git -C "$d" gc
+done

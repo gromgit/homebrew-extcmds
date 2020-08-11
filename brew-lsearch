@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#: * `lsearch` [<opts>]
+#:   Runs `brew search <opts>` in offline mode
+HOMEBREW_NO_GITHUB_API=1 exec brew search "$@"

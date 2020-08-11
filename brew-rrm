@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#: * `rrm` [<opts>] <formula>...
+#:   Runs `brew rm` <opts> on each <formula> and (recursively) all their deps. This is safe, as it fails naturally (if a bit noisily) on deps that are used by other installed formulae.
+for p in "$@" $(brew deps -n --union --include-build --include-optional --include-test --installed "$@" | tac); do
+  brew remove "$p"
+done
