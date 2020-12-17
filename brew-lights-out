@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+if [[ -n $HOMEBREW_PREFIX ]]; then
+  hb=$HOMEBREW_PREFIX
+elif [[ $(uname -s) == Linux ]]; then
+  hb=/home/linuxbrew/.linuxbrew
+else
+  hb=/usr/local
+fi
+  
+brew=${hb}/bin/brew
+[[ -x $brew ]] || { echo "FATAL ERROR: Brew isn't installed"; exit 1 ; }
+eval "$($brew shellenv)"
+shopt -s nocaseglob
+
+hbcache=${hb}/var/cache/Homebrew
+mkdir -p ${hbcache}
+
+echo "===== Updating Homebrew ====="
+${brew} update 2>&1 | tee /tmp/brew_update.log | while read -r l; do
+  case "$l" in
+    *New\ Form*)
+      print_new=formula
+      echo -e "\n$l"
+    ;;
+    *Updated\ Cask*)
+      print_new=cask
+      echo -e "\n$l"
+    ;;
+    *Updated\ Form*|*Renamed\ Form*|*Deleted\ Form*\|*Deleted\ Cask*)
+      print_new=""
+      echo -e "\n$l"
+    ;;
+    *)
+      case "$print_new" in
+        formula)
+          echo ""
+          ${brew} info --formula "$l"
+        ;;
+        cask)
+          echo ""
+          ${brew} info --cask "$l"
+        ;;
+        "")
+          echo "$l"
+        ;;
+        *) echo "WARNING: Unknown mode '$print_new'" ;;
+      esac
+    ;;
+  esac
+done 2>&1 | tee /tmp/brew_update_result.log
+
+# Update dependency list for later queries
+echo "===== Updating Homebrew dependency list ====="
+${brew} deps --installed > ${hbcache}/deptree.txt
+
+# Generate TSV DB of all packages
+echo "===== Generating TSV DB ====="
+echo -e "name\tdescription\thomepage" > ${hbcache}/homebrew.tsv
+${brew} info --json=v1 --all | jq ".[] | .name,.desc,.homepage" | sed -e 's/^null$//' -e 's/^"\(.*\)"$/\1/' | awk 'NR%3 {printf("%s\t", $0); next} {print $0}' | sort >> ${hbcache}/homebrew.tsv
+
+# Update my Brewfile
+echo "===== Dumping bundle ====="
+${brew} bundle dump --global -f
