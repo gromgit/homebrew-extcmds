@@ -20,6 +20,14 @@ jquery() {
 shopt -s lastpipe
 command -v jq &>/dev/null || fatal "jq not available"
 
+while true; do
+  case "$1" in
+    -w|--wipe-bottles) wipe_bottles=1;;
+    *) break;;
+  esac
+  shift
+done
+
 set -e
 
 for f in "$@"; do
@@ -36,7 +44,7 @@ for f in "$@"; do
     brew install --build-bottle "$f"
     brew info --json "$f" > ./.base_json
     fver=$(jquery .versions.stable)
-    if [[ $(jquery '.bottle | length') == "0" ]]; then
+    if [[ -n "$wipe_bottles" || $(jquery '.bottle | length') == "0" ]]; then
       # New bottle section
       root_url=https://github.com/${ghrepo}/releases/download/${fname}-${fver}
       keep_old=()
