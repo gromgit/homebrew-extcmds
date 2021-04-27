@@ -63,6 +63,8 @@ for f in "$@"; do
     echo "----- Reinstalling $f -----"
     brew rm "$f"
     brew install "$f"
+    echo "----- Cleaning up $f -----"
+    brew rm "$f"
     cd - &> /dev/null
     cleanup
   else
