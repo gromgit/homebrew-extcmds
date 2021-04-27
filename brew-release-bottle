@@ -26,15 +26,17 @@ for f in "$@"; do
   if [[ $f =~ ([^/]+)/([^/]+)/([^/]+) ]]; then
     tap=${BASH_REMATCH[1]}/${BASH_REMATCH[2]}
     ghrepo=${BASH_REMATCH[1]}/homebrew-${BASH_REMATCH[2]}
-    repodir=$(brew --repo "$ghrepo")
+    repodir=$(brew --repo "$tap")
     fname=${BASH_REMATCH[3]}
+    # First make sure the tap's up-to-date
+    git -C "$repodir" pull
     tmpdir=$(mktemp -d)
     cd "$tmpdir"
     echo "===== Bottling $f in $tmpdir ====="
     brew install --build-bottle "$f"
     brew info --json "$f" > ./.base_json
     fver=$(jquery .versions.stable)
-    if [[ $(jquery '.bottle | length') == "0" && -s ${repodir}/.root_url_base ]]; then
+    if [[ $(jquery '.bottle | length') == "0" ]]; then
       # New bottle section
       root_url=https://github.com/${ghrepo}/releases/download/${fname}-${fver}
       keep_old=()
@@ -46,7 +48,7 @@ for f in "$@"; do
     brew bottle --verbose --json --root-url="${root_url}" "$f"
     brew bottle --merge --write --root-url="${root_url}" "${keep_old[@]}" ./*.json
     echo "----- Uploading for $f -----"
-    jq -r '.[].bottle.tags|.[]|"\(.local_filename) \(.filename)"' ./*.json | while read lf rf; do
+    jq -r '.[].bottle.tags|.[]|"\(.local_filename) \(.filename)"' ./*.json | while read -r lf rf; do
       mv -v "$lf" "$rf"
       tag=${root_url##*/}
       if gh release view "$tag" -R "$ghrepo" >&/dev/null; then
@@ -57,7 +59,7 @@ for f in "$@"; do
         gh release create "$tag" "$rf" -R "$ghrepo"
       fi
     done
-    git -C $(brew --repo "$tap") push 
+    git -C "$repodir" push 
     echo "----- Reinstalling $f -----"
     brew rm "$f"
     brew install "$f"
