@@ -41,10 +41,10 @@ for f in "$@"; do
     git -C "$repodir" pull
     tmpdir=$(mktemp -d)
     cd "$tmpdir"
+    brew rm "$f" || true
     if [[ -n "$pre_test" ]]; then
       # Let's make sure it'll pass first
       echo "----- Testing $f -----"
-      brew rm "$f" || true
       brew install -s "$f"
       brew test "$f"
       brew rm "$f"
