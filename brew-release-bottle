@@ -22,6 +22,7 @@ command -v jq &>/dev/null || fatal "jq not available"
 
 while true; do
   case "$1" in
+    -t|--pre-test) pre_test=1;;
     -w|--wipe-bottles) wipe_bottles=1;;
     *) break;;
   esac
@@ -40,12 +41,14 @@ for f in "$@"; do
     git -C "$repodir" pull
     tmpdir=$(mktemp -d)
     cd "$tmpdir"
-    # Let's make sure it'll pass first
-    echo "----- Testing $f -----"
-    brew rm "$f" || true
-    brew install -s "$f"
-    brew test "$f"
-    brew rm "$f"
+    if [[ -n "$pre_test" ]]; then
+      # Let's make sure it'll pass first
+      echo "----- Testing $f -----"
+      brew rm "$f" || true
+      brew install -s "$f"
+      brew test "$f"
+      brew rm "$f"
+    fi
     echo "----- Bottling $f in $tmpdir -----"
     brew install --build-bottle "$f"
     brew info --json "$f" > ./.base_json
