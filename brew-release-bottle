@@ -40,7 +40,13 @@ for f in "$@"; do
     git -C "$repodir" pull
     tmpdir=$(mktemp -d)
     cd "$tmpdir"
-    echo "===== Bottling $f in $tmpdir ====="
+    # Let's make sure it'll pass first
+    echo "----- Testing $f -----"
+    brew rm "$f" || true
+    brew install -s "$f"
+    brew test "$f"
+    brew rm "$f"
+    echo "----- Bottling $f in $tmpdir -----"
     brew install --build-bottle "$f"
     brew info --json "$f" > ./.base_json
     fver=$(jquery .versions.stable)
@@ -68,9 +74,10 @@ for f in "$@"; do
       fi
     done
     git -C "$repodir" push 
-    echo "----- Reinstalling $f -----"
+    echo "----- Reinstalling & testing $f -----"
     brew rm "$f"
     brew install "$f"
+    brew test "$f"
     echo "----- Cleaning up $f -----"
     brew rm "$f"
     cd - &> /dev/null
