@@ -63,6 +63,7 @@ for f in "$@"; do
     fi
     [[ $root_url != "null" ]] || fatal "unable to determine root URL"
     brew bottle --verbose --json --root-url="${root_url}" "$f"
+    git -C "$repodir" add Formula/"$fname".rb
     brew bottle --merge --write --root-url="${root_url}" "${keep_old[@]}" ./*.json
     echo "----- Uploading for $f -----"
     jq -r '.[].bottle.tags|.[]|"\(.local_filename) \(.filename)"' ./*.json | while read -r lf rf; do
